@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aethelgard: The Lost Solstice</title>
     <style>
+        * {
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
             padding: 0;
@@ -36,17 +39,26 @@
 // ============================================================================
 class AudioSynthesizer {
     constructor() {
-        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        this.ctx = null;
+    }
+
+    init() {
+        if (!this.ctx) {
+            this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (this.ctx.state === 'suspended') {
+            this.ctx.resume();
+        }
     }
 
     playJumpSFX() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.init();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sine';
         osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(420, this.ctx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.15);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -55,11 +67,11 @@ class AudioSynthesizer {
     }
 
     playStepSFX() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.init();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(80, this.ctx.currentTime);
+        osc.frequency.setValueAtTime(90, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.05);
         gain.gain.setValueAtTime(0.1, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.05);
@@ -70,7 +82,7 @@ class AudioSynthesizer {
     }
 
     playRelicSFX() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.init();
         const notes = [523.25, 659.25, 783.99, 1046.50];
         notes.forEach((freq, idx) => {
             const osc = this.ctx.createOscillator();
@@ -87,13 +99,13 @@ class AudioSynthesizer {
     }
 
     playSwitchSFX() {
-        if (this.ctx.state === 'suspended') this.ctx.resume();
+        this.init();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'square';
         osc.frequency.setValueAtTime(200, this.ctx.currentTime);
         osc.frequency.setValueAtTime(100, this.ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
         osc.connect(gain);
         gain.connect(this.ctx.destination);
@@ -116,36 +128,21 @@ class BootScene extends Phaser.Scene {
     }
 
     generateGraphics() {
-        // Build Player Spritesheet Dynamics
         const g = this.add.graphics();
 
-        // 1. Player Sprite Frame (24x32)
+        // Player Sprite Frame
         g.clear();
-        // Body (Explorer tunic)
-        g.fillStyle(0x20b2aa, 1); // Turquoise
+        g.fillStyle(0x20b2aa, 1); // Turquoise armor
         g.fillRoundedRect(4, 8, 16, 20, 4);
-        // Head
-        g.fillStyle(0xe0ac69, 1); // Skin tone
+        g.fillStyle(0xe0ac69, 1); // Skin
         g.fillCircle(12, 8, 6);
-        // Scarf/Accents
-        g.fillStyle(0xffd700, 1); // Gold accent
+        g.fillStyle(0xffd700, 1); // Gold scarf
         g.fillRect(6, 12, 12, 3);
         g.generateTexture('player_idle', 24, 32);
 
-        // 2. Player Running Frame
-        g.clear();
-        g.fillStyle(0x20b2aa, 1);
-        g.fillRoundedRect(2, 8, 18, 18, 4);
-        g.fillStyle(0xe0ac69, 1);
-        g.fillCircle(14, 7, 6);
-        g.fillStyle(0xffd700, 1);
-        g.fillRect(4, 12, 14, 3);
-        g.generateTexture('player_run', 24, 32);
-
-        // 3. Environment Tiles
         // Ground Tile
         g.clear();
-        g.fillStyle(0x3a3225, 1); // Sandstone Dark
+        g.fillStyle(0x3a3225, 1);
         g.fillRect(0, 0, 32, 32);
         g.fillStyle(0x5c4d37, 1);
         g.fillRect(2, 2, 28, 28);
@@ -161,7 +158,7 @@ class BootScene extends Phaser.Scene {
         g.fillRect(8, 4, 48, 8);
         g.generateTexture('moving_platform', 64, 16);
 
-        // Relic / Collectible
+        // Relic
         g.clear();
         g.fillStyle(0xffd700, 1);
         g.fillTriangle(12, 0, 24, 24, 0, 24);
@@ -169,7 +166,7 @@ class BootScene extends Phaser.Scene {
         g.fillCircle(12, 14, 4);
         g.generateTexture('relic', 24, 24);
 
-        // Pressure Switch
+        // Switch Off / On
         g.clear();
         g.fillStyle(0x888888, 1);
         g.fillRect(0, 8, 32, 8);
@@ -184,7 +181,7 @@ class BootScene extends Phaser.Scene {
         g.fillRect(6, 7, 20, 2);
         g.generateTexture('switch_on', 32, 16);
 
-        // Door Barrier
+        // Door
         g.clear();
         g.fillStyle(0xffd700, 0.8);
         g.fillRect(0, 0, 16, 64);
@@ -192,7 +189,7 @@ class BootScene extends Phaser.Scene {
         g.fillRect(4, 4, 8, 56);
         g.generateTexture('door', 16, 64);
 
-        // Checkpoint Pillar
+        // Checkpoint
         g.clear();
         g.fillStyle(0x5c4d37, 1);
         g.fillRect(4, 0, 16, 48);
@@ -200,7 +197,7 @@ class BootScene extends Phaser.Scene {
         g.fillCircle(12, 10, 6);
         g.generateTexture('checkpoint', 24, 48);
 
-        // Background Decorative Pillar
+        // Background Pillar
         g.clear();
         g.fillStyle(0x1a1610, 0.6);
         g.fillRect(0, 0, 40, 300);
@@ -219,12 +216,10 @@ class MainMenuScene extends Phaser.Scene {
     create() {
         const { width, height } = this.scale;
 
-        // Cinematic Background Gradient
         const bg = this.add.graphics();
         bg.fillGradientStyle(0x0d0f12, 0x0d0f12, 0x1f1a14, 0x1f1a14, 1);
         bg.fillRect(0, 0, width, height);
 
-        // Game Title
         this.add.text(width / 2, height / 3, 'AETHELGARD', {
             fontSize: '56px',
             fontStyle: 'bold',
@@ -238,21 +233,18 @@ class MainMenuScene extends Phaser.Scene {
             letterSpacing: 4
         }).setOrigin(0.5);
 
-        // Play Button Prompt
         const startText = this.add.text(width / 2, height / 1.5, 'PRESS SPACE OR CLICK TO START', {
             fontSize: '18px',
             color: '#ffffff'
         }).setOrigin(0.5);
 
-        // Controls Box
-        const info = this.add.text(width / 2, height - 80, 
-            'Controls: [A/D] or [←/→] Move | [SPACE/W] Jump | [SHIFT] Roll | [S/↓] Crouch\nWall Jump: Jump while sliding on a wall', {
+        this.add.text(width / 2, height - 80, 
+            'Controls: [A/D] Move | [SPACE/W] Jump | [SHIFT] Roll | [S] Crouch\nWall Jump: Jump while sliding on a wall | Mid-Air Jump Available', {
             fontSize: '14px',
             color: '#a0a0a0',
             align: 'center'
         }).setOrigin(0.5);
 
-        // Pulsing Start Text Animation
         this.tweens.add({
             targets: startText,
             alpha: 0.2,
@@ -261,13 +253,154 @@ class MainMenuScene extends Phaser.Scene {
             loop: -1
         });
 
-        // Event Listeners for Transition
         this.input.keyboard.once('keydown-SPACE', () => this.startGame());
         this.input.on('pointerdown', () => this.startGame());
     }
 
     startGame() {
         this.scene.start('LevelScene');
+    }
+}
+
+// ============================================================================
+// ADVANCED PLAYER ENTITY CLASS
+// ============================================================================
+class Player extends Phaser.Physics.Arcade.Sprite {
+    constructor(scene, x, y) {
+        super(scene, x, y, 'player_idle');
+        scene.add.existing(this);
+        scene.physics.add.existing(this);
+
+        this.body.setGravityY(800);
+        this.body.setCollideWorldBounds(true);
+        this.body.setSize(18, 28);
+        this.body.setOffset(3, 4);
+
+        this.MOVE_SPEED = 180;
+        this.RUN_SPEED = 250;
+        this.JUMP_FORCE = -380;
+        this.WALL_SLIDE_SPEED = 60;
+
+        this.states = {
+            isGrounded: false,
+            isCrouching: false,
+            isRolling: false,
+            isWallSliding: false,
+            canDoubleJump: false,
+            facing: 'right'
+        };
+
+        this.setupInputs();
+    }
+
+    setupInputs() {
+        const { KEYS } = Phaser.Input.Keyboard;
+        this.inputs = this.scene.input.keyboard.addKeys({
+            left: KEYS.A,
+            right: KEYS.D,
+            up: KEYS.W,
+            down: KEYS.S,
+            jump: KEYS.SPACE,
+            shift: KEYS.SHIFT
+        });
+    }
+
+    update() {
+        if (!this.body) return;
+
+        const onFloor = this.body.blocked.down || this.body.touching.down;
+        const onWallLeft = this.body.blocked.left;
+        const onWallRight = this.body.blocked.right;
+        const onWall = (onWallLeft || onWallRight) && !onFloor;
+
+        this.states.isGrounded = onFloor;
+
+        // --- ROLLING MECHANIC ---
+        if (Phaser.Input.Keyboard.JustDown(this.inputs.shift) && onFloor && !this.states.isRolling) {
+            this.executeRoll();
+            return;
+        }
+
+        if (this.states.isRolling) return;
+
+        // --- CROUCHING MECHANIC ---
+        if (this.inputs.down.isDown && onFloor) {
+            this.states.isCrouching = true;
+            this.body.setSize(18, 16);
+            this.body.setOffset(3, 16);
+            this.setVelocityX(this.body.velocity.x * 0.85);
+        } else if (this.states.isCrouching) {
+            this.states.isCrouching = false;
+            this.body.setSize(18, 28);
+            this.body.setOffset(3, 4);
+        }
+
+        // --- HORIZONTAL MOVEMENT ---
+        const isRunning = this.inputs.shift.isDown;
+        const speed = isRunning ? this.RUN_SPEED : this.MOVE_SPEED;
+
+        if (this.inputs.left.isDown && !this.states.isCrouching) {
+            this.setVelocityX(Phaser.Math.Linear(this.body.velocity.x, -speed, 0.2));
+            this.setFlipX(true);
+            this.states.facing = 'left';
+            if (onFloor && Math.random() < 0.1) audioSynth.playStepSFX();
+        } else if (this.inputs.right.isDown && !this.states.isCrouching) {
+            this.setVelocityX(Phaser.Math.Linear(this.body.velocity.x, speed, 0.2));
+            this.setFlipX(false);
+            this.states.facing = 'right';
+            if (onFloor && Math.random() < 0.1) audioSynth.playStepSFX();
+        } else if (!this.states.isCrouching) {
+            this.setVelocityX(Phaser.Math.Linear(this.body.velocity.x, 0, 0.25));
+        }
+
+        // --- WALL SLIDE ---
+        if (onWall && this.body.velocity.y > 0) {
+            this.states.isWallSliding = true;
+            this.setVelocityY(this.WALL_SLIDE_SPEED);
+        } else {
+            this.states.isWallSliding = false;
+        }
+
+        // --- JUMPING & WALL JUMP ---
+        const jumpPressed = Phaser.Input.Keyboard.JustDown(this.inputs.jump) || Phaser.Input.Keyboard.JustDown(this.inputs.up);
+
+        if (onFloor) {
+            this.states.canDoubleJump = true;
+        }
+
+        if (jumpPressed) {
+            if (onFloor) {
+                this.setVelocityY(this.JUMP_FORCE);
+                audioSynth.playJumpSFX();
+            } else if (this.states.isWallSliding) {
+                const pushDir = onWallLeft ? 1 : -1;
+                this.setVelocityX(pushDir * 260);
+                this.setVelocityY(-340);
+                this.setFlipX(pushDir < 0);
+                audioSynth.playJumpSFX();
+            } else if (this.states.canDoubleJump) {
+                this.setVelocityY(this.JUMP_FORCE * 0.85);
+                this.states.canDoubleJump = false;
+                audioSynth.playJumpSFX();
+            }
+        }
+
+        // Variable Jump Height (Cut vertical speed on release)
+        if ((this.inputs.jump.isUp && this.inputs.up.isUp) && this.body.velocity.y < -100) {
+            this.setVelocityY(this.body.velocity.y * 0.5);
+        }
+    }
+
+    executeRoll() {
+        this.states.isRolling = true;
+        const dir = this.states.facing === 'right' ? 1 : -1;
+        this.setVelocityX(dir * 380);
+        this.setScale(1, 0.5);
+
+        this.scene.time.delayedCall(300, () => {
+            this.states.isRolling = false;
+            this.setScale(1, 1);
+        });
     }
 }
 
@@ -280,13 +413,10 @@ class LevelScene extends Phaser.Scene {
     create() {
         this.cameras.main.setBackgroundColor('#0d0f12');
 
-        // State & Progression
-        this.currentArea = 1;
         this.relicsCollected = 0;
         this.totalRelics = 4;
         this.respawnPoint = { x: 80, y: 400 };
 
-        // Create Groups
         this.platforms = this.physics.add.staticGroup();
         this.movingPlatforms = this.physics.add.group();
         this.relics = this.physics.add.staticGroup();
@@ -295,15 +425,14 @@ class LevelScene extends Phaser.Scene {
         this.checkpoints = this.physics.add.staticGroup();
         this.hazards = this.physics.add.staticGroup();
 
-        // Build Multi-Area Map
         this.buildWorld();
 
-        // Spawn Player
-        this.createPlayer();
+        // Spawn Player Entity
+        this.player = new Player(this, this.respawnPoint.x, this.respawnPoint.y);
 
-        // Collisions & Triggers
+        // Collisions
         this.physics.add.collider(this.player, this.platforms);
-        this.physics.add.collider(this.player, this.movingPlatforms, this.handleMovingPlatform, null, this);
+        this.physics.add.collider(this.player, this.movingPlatforms);
         this.physics.add.collider(this.player, this.doors);
         this.physics.add.overlap(this.player, this.relics, this.collectRelic, null, this);
         this.physics.add.overlap(this.player, this.switches, this.activateSwitch, null, this);
@@ -314,39 +443,20 @@ class LevelScene extends Phaser.Scene {
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
         this.cameras.main.setBounds(0, 0, 3800, 800);
 
-        // Controls Setup
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.keys = this.input.keyboard.addKeys({
-            a: Phaser.Input.Keyboard.KeyCodes.A,
-            d: Phaser.Input.Keyboard.KeyCodes.D,
-            w: Phaser.Input.Keyboard.KeyCodes.W,
-            s: Phaser.Input.Keyboard.KeyCodes.S,
-            shift: Phaser.Input.Keyboard.KeyCodes.SHIFT
-        });
-
-        // UI Overlay
         this.createUI();
-
-        // Dynamic Lighting Effect Ambient Light
-        this.ambientLight = this.add.graphics();
-        this.ambientLight.fillStyle(0x000000, 0.15);
-        this.ambientLight.fillRect(0, 0, 3800, 800);
     }
 
     buildWorld() {
-        // Background Aesthetics
         for (let x = 100; x < 3600; x += 300) {
             this.add.image(x, 450, 'bg_pillar').setDepth(0);
         }
 
-        // GROUND FLOOR & STRUCTURE
-        // Area 1: Ancient Ruins (X: 0 - 900)
-        this.createPlatformRect(0, 550, 28, 3); // Main Entrance floor
+        // Area 1: Ancient Ruins (0 - 900)
+        this.createPlatformRect(0, 550, 28, 3);
         this.createPlatformRect(300, 420, 6, 1);
         this.createPlatformRect(550, 320, 8, 1);
         this.relics.create(650, 270, 'relic');
 
-        // Moving platform bridging Area 1 & 2
         const mp1 = this.movingPlatforms.create(850, 480, 'moving_platform');
         mp1.setImmovable(true);
         mp1.body.allowGravity = false;
@@ -359,11 +469,10 @@ class LevelScene extends Phaser.Scene {
             ease: 'Sine.easeInOut'
         });
 
-        // Area 2: Underground Temple (X: 1000 - 1900)
+        // Area 2: Underground Temple (1000 - 1900)
         this.createPlatformRect(1150, 550, 20, 3);
         this.createPlatformRect(1350, 420, 4, 1);
         
-        // Puzzle 1: Switch & Barrier Door
         const sw1 = this.switches.create(1200, 520, 'switch_off');
         sw1.id = 'door1';
         sw1.activated = false;
@@ -374,15 +483,13 @@ class LevelScene extends Phaser.Scene {
         this.createPlatformRect(1620, 550, 15, 3);
         this.relics.create(1700, 500, 'relic');
 
-        // Checkpoint 1
         this.checkpoints.create(1250, 502, 'checkpoint');
 
-        // Area 3: Forgotten City (X: 2000 - 2800)
+        // Area 3: Forgotten City (2000 - 2800)
         this.createPlatformRect(2000, 550, 8, 1);
         this.createPlatformRect(2200, 450, 6, 1);
         this.createPlatformRect(2400, 350, 6, 1);
 
-        // Hazards Section
         const hazardG = this.add.graphics();
         hazardG.fillStyle(0xff2200, 0.6);
         hazardG.fillRect(2000, 580, 800, 20);
@@ -390,17 +497,14 @@ class LevelScene extends Phaser.Scene {
         this.physics.add.existing(hazardZone, true);
         this.hazards.add(hazardZone);
 
-        // Vertical Wall Climb Section
         this.createPlatformRect(2650, 200, 2, 10);
         this.relics.create(2600, 150, 'relic');
 
-        // Checkpoint 2
         this.checkpoints.create(2050, 502, 'checkpoint');
 
-        // Area 4: Final Sanctuary (X: 2900 - 3600)
+        // Area 4: Final Sanctuary (2900 - 3600)
         this.createPlatformRect(2900, 550, 25, 3);
         
-        // Final Puzzle: Dual Switch System
         const sw2 = this.switches.create(3000, 520, 'switch_off');
         sw2.id = 'door2';
         sw2.activated = false;
@@ -408,7 +512,6 @@ class LevelScene extends Phaser.Scene {
         const d2 = this.doors.create(3300, 486, 'door');
         d2.id = 'door2';
 
-        // Final Relic
         this.relics.create(3450, 500, 'relic');
     }
 
@@ -419,24 +522,6 @@ class LevelScene extends Phaser.Scene {
                 tile.refreshBody();
             }
         }
-    }
-
-    createPlayer() {
-        this.player = this.physics.add.sprite(this.respawnPoint.x, this.respawnPoint.y, 'player_idle');
-        this.player.setCollideWorldBounds(true);
-        this.player.setGravityY(750);
-        this.player.body.setSize(18, 28);
-        this.player.body.setOffset(3, 4);
-
-        // Controller Dynamics State Engine
-        this.playerState = {
-            isGrounded: false,
-            isRolling: false,
-            isCrouching: false,
-            isWallSliding: false,
-            canDoubleJump: false,
-            facing: 'right'
-        };
     }
 
     createUI() {
@@ -461,114 +546,25 @@ class LevelScene extends Phaser.Scene {
         this.uiContainer.add(this.zoneText);
     }
 
-    update() {
-        if (!this.player || !this.player.body) return;
+    update(time, delta) {
+        if (this.player) {
+            this.player.update();
 
-        const onFloor = this.player.body.blocked.down || this.player.body.touching.down;
-        const onWallLeft = this.player.body.blocked.left;
-        const onWallRight = this.player.body.blocked.right;
+            // Dynamic Area Tracker
+            if (this.player.x > 2900) {
+                this.zoneText.setText('Area: Sanctuary Solstice');
+            } else if (this.player.x > 1900) {
+                this.zoneText.setText('Area: Forgotten City');
+            } else if (this.player.x > 1000) {
+                this.zoneText.setText('Area: Underground Temple');
+            } else {
+                this.zoneText.setText('Area: Ancient Ruins');
+            }
 
-        // Input Polling
-        const left = this.cursors.left.isDown || this.keys.a.isDown;
-        const right = this.cursors.right.isDown || this.keys.d.isDown;
-        const jump = Phaser.Input.Keyboard.JustDown(this.cursors.up) || Phaser.Input.Keyboard.JustDown(this.keys.w) || Phaser.Input.Keyboard.JustDown(this.cursors.space);
-        const crouch = this.cursors.down.isDown || this.keys.s.isDown;
-        const roll = Phaser.Input.Keyboard.JustDown(this.keys.shift);
-
-        // --- 1. HORIZONTAL MOVEMENT ENGINE ---
-        let targetSpeed = 0;
-        const moveSpeed = 210;
-        const accel = onFloor ? 0.2 : 0.1;
-
-        if (left) {
-            targetSpeed = -moveSpeed;
-            this.player.setFlipX(true);
-            this.playerState.facing = 'left';
-        } else if (right) {
-            targetSpeed = moveSpeed;
-            this.player.setFlipX(false);
-            this.playerState.facing = 'right';
-        }
-
-        if (!this.playerState.isRolling) {
-            this.player.setVelocityX(Phaser.Math.Linear(this.player.body.velocity.x, targetSpeed, accel));
-        }
-
-        // Footstep Audio Trigger
-        if (onFloor && Math.abs(this.player.body.velocity.x) > 50 && Math.random() < 0.1) {
-            audioSynth.playStepSFX();
-        }
-
-        // --- 2. JUMPING & WALL MOVEMENT ---
-        if (onFloor) {
-            this.playerState.isGrounded = true;
-            this.playerState.canDoubleJump = true;
-            this.playerState.isWallSliding = false;
-        } else {
-            this.playerState.isGrounded = false;
-        }
-
-        // Wall Slide Mechanism
-        if ((onWallLeft || onWallRight) && !onFloor && this.player.body.velocity.y > 0) {
-            this.playerState.isWallSliding = true;
-            this.player.setVelocityY(80); // Terminal slide velocity limit
-        } else {
-            this.playerState.isWallSliding = false;
-        }
-
-        // Jump Execution
-        if (jump) {
-            if (onFloor) {
-                // Standard Jump
-                this.player.setVelocityY(-360);
-                audioSynth.playJumpSFX();
-            } else if (this.playerState.isWallSliding) {
-                // Wall Jump Push-off
-                this.player.setVelocityY(-340);
-                this.player.setVelocityX(onWallLeft ? 240 : -240);
-                audioSynth.playJumpSFX();
-            } else if (this.playerState.canDoubleJump) {
-                // Mid-air Jump
-                this.player.setVelocityY(-300);
-                this.playerState.canDoubleJump = false;
-                audioSynth.playJumpSFX();
+            if (this.player.y > 750) {
+                this.playerDeath();
             }
         }
-
-        // --- 3. ROLLING MECHANIC ---
-        if (roll && onFloor && !this.playerState.isRolling) {
-            this.playerState.isRolling = true;
-            const rollDir = this.playerState.facing === 'right' ? 1 : -1;
-            this.player.setVelocityX(rollDir * 350);
-            
-            // Temporary Scale Squash
-            this.player.setScale(1, 0.5);
-
-            this.time.delayedCall(350, () => {
-                this.playerState.isRolling = false;
-                this.player.setScale(1, 1);
-            });
-        }
-
-        // --- 4. AREA TRACKING & UI UPDATES ---
-        if (this.player.x > 2900) {
-            this.zoneText.setText('Area: Sanctuary Solstice');
-        } else if (this.player.x > 1900) {
-            this.zoneText.setText('Area: Forgotten City');
-        } else if (this.player.x > 1000) {
-            this.zoneText.setText('Area: Underground Temple');
-        } else {
-            this.zoneText.setText('Area: Ancient Ruins');
-        }
-
-        // Pit Fall Check
-        if (this.player.y > 750) {
-            this.playerDeath();
-        }
-    }
-
-    handleMovingPlatform(player, platform) {
-        // Keeps player locked on moving platform
     }
 
     collectRelic(player, relic) {
@@ -588,7 +584,6 @@ class LevelScene extends Phaser.Scene {
         sw.setTexture('switch_on');
         audioSynth.playSwitchSFX();
 
-        // Open linked door
         this.doors.children.iterate((door) => {
             if (door && door.id === sw.id) {
                 this.tweens.add({
@@ -634,7 +629,7 @@ class LevelScene extends Phaser.Scene {
 }
 
 // ============================================================================
-// GAME CONFIGURATION & BOOTSTRAP
+// GAME CONFIGURATION
 // ============================================================================
 const config = {
     type: Phaser.AUTO,
